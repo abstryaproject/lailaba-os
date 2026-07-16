@@ -1,0 +1,20 @@
+#!/bin/sh
+# 0450-smtp.chroot — local loopback MTA for verify/reset emails (was tmux lailaba-smtp).
+set -e
+cat > /etc/systemd/system/lailaba-smtp.service <<'EOF'
+[Unit]
+Description=Lailaba Local SMTP (loopback :8025)
+After=network.target
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=/root
+ExecStart=/bin/bash /root/bin/lailaba-smtp-run.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "smtp unit written"

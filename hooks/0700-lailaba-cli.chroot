@@ -1,0 +1,43 @@
+#!/bin/sh
+# 0700-lailaba-cli.chroot — convenient `lailaba` command on the ISO.
+set -e
+cat > /usr/local/bin/lailaba <<'EOF'
+#!/usr/bin/env bash
+# lailaba — control the Lailaba OS services.
+# Usage: lailaba <status|start|stop|restart|install|logs>
+set -euo pipefail
+SVCS="lailaba-ai lailaba-agent lailaba-gateway lailaba-gateway-watch lailaba-guard lailaba-smtp lailaba-lab lailaba-tunnel"
+TIMERS="lailaba-ipwatchdog lailaba-fubk-reaudit"
+cmd="${1:-status}"
+case "$cmd" in
+  status)
+    for s in $SVCS; do
+      if systemctl is-enabled --quiet "$s" 2>/dev/null; then en="[enabled]"; else en="[off]"; fi
+      if systemctl is-active --quiet "$s" 2>/dev/null; then st="UP"; else st="DOWN"; fi
+      printf "  %-22s %s %s\n" "$s" "$st" "$en"
+    done
+    echo "  -- timers --"
+    for t in $TIMERS; do
+      if systemctl is-enabled --quiet "$t.timer" 2>/dev/null; then en="[enabled]"; else en="[off]"; fi
+      if systemctl is-active --quiet "$t.timer" 2>/dev/null; then st="RUNNING"; else st="idle"; fi
+      printf "  %-22s %s %s\n" "$t" "$st" "$en"
+    done
+    echo "Web UI: http://localhost:8000   Agent: http://localhost:7000   Lab: http://localhost:8080"
+    ;;
+  start|stop|restart)
+    for s in $SVCS; do
+      systemctl is-enabled --quiet "$s" 2>/dev/null && sudo systemctl "$cmd" "$s" || true
+    done
+    echo "$cmd done"
+    ;;
+  install)
+    echo "Edit /root/lailaba-ai/.env then: sudo systemctl restart lailaba-ai"
+    ;;
+  logs)
+    svc="${2:-lailaba-ai}"; sudo journalctl -u "$svc" -f
+    ;;
+  *) echo "Usage: lailaba <status|start|stop|restart|install|logs [svc]>"; exit 1;;
+esac
+EOF
+chmod +x /usr/local/bin/lailaba
+echo "lailaba CLI installed"

@@ -1,0 +1,47 @@
+#!/bin/sh
+# 0300-install-gateway.chroot — messaging gateway (Telegram/WhatsApp/Discord).
+set -e
+cd /opt/lailaba-gateway
+
+# If a snapshot was ingested, the gateway code + scripts live under /root
+# (the source device's home). This /opt copy is only a fallback.
+SNAP=/root/.hermes
+if [ ! -f gateway.py ] && [ ! -f main.py ]; then
+  if [ -d "$SNAP" ]; then
+    echo "[*] Using ingested gateway from snapshot ($SNAP)"
+  else
+    echo "[*] No local gateway copy — cloning abstryaproject/lailaba-gateway"
+    git clone --depth 1 https://github.com/abstryaproject/lailaba-gateway.git /tmp/lg
+    cp -a /tmp/lg/. /opt/lailaba-gateway/
+    rm -rf /tmp/lg
+  fi
+fi
+
+# Prefer snapshot launcher, else bundled /opt service script.
+if [ -x /root/bin/lailaba ] && [ -d "$SNAP" ]; then
+  GW_EXEC="/root/bin/lailaba gateway run"
+  GW_WORK="/root"
+else
+  GW_EXEC="/opt/lailaba-gateway/venv/bin/python gateway.py"
+  GW_WORK="/opt/lailaba-gateway"
+fi
+
+cat > /etc/systemd/system/lailaba-gateway.service <<EOF
+[Unit]
+Description=Lailaba Messaging Gateway
+After=lailaba-ai.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=$GW_WORK
+ExecStart=$GW_EXEC
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "lailaba-gateway installed"

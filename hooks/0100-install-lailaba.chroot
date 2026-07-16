@@ -1,0 +1,59 @@
+#!/bin/sh
+# 0100-install-lailaba.chroot — install the Lailaba AI FastAPI server.
+# Mirrors the Termux lailaba-ai setup but as a real systemd service.
+set -e
+cd /opt/lailaba-ai
+
+# If the builder was given a local copy of the app, it lands here via
+# includes.binary; otherwise we fetch the published release.
+if [ ! -f requirements.txt ]; then
+  echo "[*] No local app copy — cloning abstryaproject/lailaba-ai"
+  git clone --depth 1 https://github.com/abstryaproject/lailaba-ai.git /tmp/lai
+  cp -a /tmp/lai/. /opt/lailaba-ai/
+  rm -rf /tmp/lai
+fi
+
+# If a snapshot was ingested, /opt/lailaba-ai already exists (ARM venv, will be
+# rebuilt at firstboot). Only build a fresh venv if it's missing.
+if [ ! -f /opt/lailaba-ai/requirements.txt ]; then
+  echo "[*] No snapshot app — cloning abstryaproject/lailaba-ai"
+  git clone --depth 1 https://github.com/abstryaproject/lailaba-ai.git /tmp/lai
+  cp -a /tmp/lai/. /opt/lailaba-ai/
+  rm -rf /tmp/lai
+fi
+
+# Build the venv NOW (inside the chroot) so first boot is instant.
+# (If snapshot present, the firstboot service rebuilds the ARM venv for amd64;
+#  we still build here as a pre-warm using the chroot's python.)
+if [ ! -x /opt/lailaba-ai/venv/bin/python3 ]; then
+  python3 -m venv /opt/lailaba-ai/venv
+  /opt/lailaba-ai/venv/bin/pip install --upgrade pip -q
+  /opt/lailaba-ai/venv/bin/pip install -r /opt/lailaba-ai/requirements.txt
+fi
+
+# .env from example if absent
+[ -f /opt/lailaba-ai/.env ] || cp /opt/lailaba-ai/.env.example /opt/lailaba-ai/.env 2>/dev/null || true
+
+# systemd unit (overwrites the repo's example with our hardened one)
+cat > /etc/systemd/system/lailaba-ai.service <<'EOF'
+[Unit]
+Description=Lailaba AI Assistant (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=/opt/lailaba-ai
+ExecStartPre=/bin/sleep 2
+ExecStart=/opt/lailaba-ai/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+chown -R lailaba:lailaba /opt/lailaba-ai
+echo "lailaba-ai installed"

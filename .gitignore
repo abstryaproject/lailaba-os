@@ -1,0 +1,8 @@
+state/lailaba-state.tar.zst
+state/MANIFEST.txt
+state/.excludes
+state/capture.log
+build/
+config/
+out/
+*.log

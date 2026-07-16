@@ -1,0 +1,37 @@
+name: Build Lailaba OS ISO
+
+# Builds the amd64 ISO on GitHub's amd64 runners — no local hardware needed.
+# Download the artifact "lailaba-os-iso" from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'build.sh'
+      - 'hooks/**'
+      - '.github/workflows/build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            live-build debootstrap xorriso squashfs-tools \
+            isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools curl git ca-certificates
+
+      - name: Build ISO
+        run: sudo ./build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lailaba-os-iso
+          path: out/lailaba-os-amd64.iso
+          if-no-files-found: error

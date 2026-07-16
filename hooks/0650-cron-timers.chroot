@@ -1,0 +1,59 @@
+#!/bin/sh
+# 0650-cron-timers.chroot — reproduce the source-device cron jobs as systemd timers.
+# Source jobs observed:
+#   b87ea4e2616d  ipwatchdog   every 2m   (no_agent script)
+#   cb9ad9688530  fubk reaudit every 60m  (paused on source; we keep disabled)
+set -e
+
+# ipwatchdog — every 2 minutes
+cat > /etc/systemd/system/lailaba-ipwatchdog.service <<'EOF'
+[Unit]
+Description=Lailaba IP Watchdog (keep services on current IP)
+
+[Service]
+Type=oneshot
+User=lailaba
+ExecStart=/bin/bash /root/.lailaba/scripts/ipwatchdog.sh
+EOF
+
+cat > /etc/systemd/system/lailaba-ipwatchdog.timer <<'EOF'
+[Unit]
+Description=Run Lailaba IP watchdog every 2 minutes
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=2min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
+EOF
+
+# fubk reaudit — every 60 minutes (disabled by default; was paused on source)
+cat > /etc/systemd/system/lailaba-fubk-reaudit.service <<'EOF'
+[Unit]
+Description=Lailaba FUBK authorized re-audit (non-destructive)
+
+[Service]
+Type=oneshot
+User=lailaba
+ExecStart=/bin/bash /root/.local/bin/fubk_reaudit.sh
+EOF
+
+cat > /etc/systemd/system/lailaba-fubk-reaudit.timer <<'EOF'
+[Unit]
+Description=Run FUBK re-audit every 60 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=60min
+Persistent=false
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl enable lailaba-ipwatchdog.timer
+# Re-audit stays disabled to match source (paused). Enable with:
+#   systemctl enable --now lailaba-fubk-reaudit.timer
+echo "cron timers written"

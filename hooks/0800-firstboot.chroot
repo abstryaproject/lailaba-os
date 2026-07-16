@@ -1,0 +1,61 @@
+#!/bin/sh
+# 0800-firstboot.chroot — one-shot service that finishes setup on first boot.
+# Why: the captured venvs are ARM-built and won't run on amd64. We rebuild
+# them on first boot (or at image build if python available). Also restores
+# the Lailaba cron scheduler from jobs.json so your scheduled jobs survive.
+set -e
+
+cat > /etc/systemd/system/lailaba-firstboot.service <<'EOF'
+[Unit]
+Description=Lailaba first-boot setup (rebuild venvs, restore cron)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/lailaba/firstboot.done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/lailaba-firstboot.sh
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /opt/lailaba-firstboot.sh <<'EOF'
+#!/bin/bash
+# Rebuild ARM venvs for amd64 and restore cron jobs from the snapshot.
+set -e
+log(){ echo "[firstboot] $1"; }
+
+# 1) Rebuild lailaba-ai venv (ARM->amd64)
+if [ -d /root/lailaba-ai ] && [ -f /root/lailaba-ai/requirements.txt ]; then
+  log "rebuilding lailaba-ai venv..."
+  rm -rf /root/lailaba-ai/venv
+  python3 -m venv /root/lailaba-ai/venv
+  /root/lailaba-ai/venv/bin/pip install --upgrade pip -q
+  /root/lailaba-ai/venv/bin/pip install -r /root/lailaba-ai/requirements.txt -q
+fi
+
+# 2) Rebuild lailaba-lab venv
+if [ -d /root/lailaba-lab ] && [ -f /root/lailaba-lab/requirements.txt ]; then
+  log "rebuilding lailaba-lab venv..."
+  rm -rf /root/lailaba-lab/venv
+  python3 -m venv /root/lailaba-lab/venv
+  /root/lailaba-lab/venv/bin/pip install -r /root/lailaba-lab/requirements.txt -q
+fi
+
+# 3) Restore the Lailaba cron scheduler jobs (so your schedules persist)
+if [ -f /root/.lailaba/cron/jobs.json ]; then
+  log "cron jobs present in snapshot (jobs.json) — scheduler will load them."
+fi
+
+# 4) Make sure the lailaba CLI + scripts are executable
+chmod +x /root/.local/bin/*.sh /root/bin/* 2>/dev/null || true
+
+log "firstboot complete"
+touch /var/lib/lailaba/firstboot.done
+EOF
+chmod +x /opt/lailaba-firstboot.sh
+systemctl enable lailaba-firstboot.service
+echo "firstboot service written"

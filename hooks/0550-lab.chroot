@@ -1,0 +1,21 @@
+#!/bin/sh
+# 0550-lab.chroot — Live Range training server (was tmux lailaba-lab :8080).
+set -e
+cat > /etc/systemd/system/lailaba-lab.service <<'EOF'
+[Unit]
+Description=Lailaba Live Range Training Server
+After=lailaba-ai.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=/root/lailaba-lab
+ExecStart=/root/lailaba-lab/venv/bin/python /root/lailaba-lab/lab/runtime/labserve.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "lab unit written"

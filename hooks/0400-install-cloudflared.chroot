@@ -1,0 +1,31 @@
+#!/bin/sh
+# 0400-install-cloudflared.chroot — Cloudflare tunnel binary + service.
+set -e
+ARCH=amd64
+URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb"
+TMP=/tmp/cloudflared.deb
+if curl -fsSL -o "$TMP" "$URL"; then
+  dpkg -i "$TMP" || apt-get install -f -y
+  rm -f "$TMP"
+else
+  echo "[!] cloudflared download failed — tunnel service will be inert until installed."
+fi
+
+# Service is disabled by default; enable with: systemctl enable --now lailaba-tunnel
+cat > /etc/systemd/system/lailaba-tunnel.service <<'EOF'
+[Unit]
+Description=Lailaba Cloudflare Tunnel
+After=lailaba-ai.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lailaba
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://localhost:8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "cloudflared installed"

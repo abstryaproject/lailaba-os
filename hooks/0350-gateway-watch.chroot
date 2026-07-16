@@ -1,0 +1,21 @@
+#!/bin/sh
+# 0350-gateway-watch.chroot — gateway self-heal watchdog (was tmux hermes-gateway-watch).
+set -e
+cat > /etc/systemd/system/lailaba-gateway-watch.service <<'EOF'
+[Unit]
+Description=Lailaba Gateway Self-Heal Watchdog
+After=lailaba-gateway.service
+Requires=lailaba-gateway.service
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=/root/.local/bin
+ExecStart=/root/.local/bin/hermes-gateway-watch.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "gateway-watch unit written"

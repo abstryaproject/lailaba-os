@@ -1,0 +1,47 @@
+#!/bin/sh
+# 0200-install-agent.chroot — install the Lailaba agent core (lailaba-agent).
+set -e
+cd /opt/lailaba-agent
+
+if [ ! -f pyproject.toml ] && [ ! -f setup.py ] && [ ! -f lailaba_agent ]; then
+  echo "[*] No local agent copy — cloning abstryaproject/lailaba-agent"
+  git clone --depth 1 https://github.com/abstryaproject/lailaba-agent.git /tmp/la
+  cp -a /tmp/la/. /opt/lailaba-agent/
+  rm -rf /tmp/la
+fi
+# NOTE: if a snapshot was ingested to /root, the agent lives at /root/lailaba-agent
+# and this /opt copy is just a fallback. The enable-services hook starts the
+# snapshot copy when present.
+
+# Best-effort install of the agent package / CLI.
+if [ -f pyproject.toml ] || [ -f setup.py ]; then
+  python3 -m venv /opt/lailaba-agent/venv 2>/dev/null || true
+  if [ -x /opt/lailaba-agent/venv/bin/pip ]; then
+    /opt/lailaba-agent/venv/bin/pip install -e . -q 2>/dev/null || true
+  fi
+fi
+
+# The agent is the resident brain; it can also be driven by the gateway.
+# We run it as a lightweight always-on service that exposes the local CLI.
+cat > /etc/systemd/system/lailaba-agent.service <<'EOF'
+[Unit]
+Description=Lailaba Agent Core
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=/opt/lailaba-agent
+ExecStart=/opt/lailaba-agent/venv/bin/python -m lailaba_agent --serve 0.0.0.0:7000
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# If no --serve entrypoint exists, fall back to keeping the CLI available
+# and letting the gateway call it. Don't fail the build.
+echo "lailaba-agent installed"

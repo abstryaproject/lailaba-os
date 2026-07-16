@@ -1,0 +1,41 @@
+#!/bin/sh
+# 0500-install-guard.chroot — Lailaba Guard real-time watchdog.
+set -e
+cd /opt/lailaba-guard
+
+# If a snapshot was ingested, the guard script is /root/.local/bin/lailaba-guard.sh
+# (your actual resident watchdog). Prefer that; fall back to a cloned /opt copy.
+if [ ! -f guard.py ] && [ ! -f main.py ] && [ ! -x /root/.local/bin/lailaba-guard.sh ]; then
+  echo "[*] No local guard copy — cloning abstryaproject/lailaba-guard"
+  git clone --depth 1 https://github.com/abstryaproject/lailaba-guard.git /tmp/lg2
+  cp -a /tmp/lg2/. /opt/lailaba-guard/
+  rm -rf /tmp/lg2
+fi
+
+if [ -x /root/.local/bin/lailaba-guard.sh ]; then
+  GUARD_EXEC="/bin/bash /root/.local/bin/lailaba-guard.sh"
+  GUARD_WORK="/root"
+else
+  GUARD_EXEC="/opt/lailaba-guard/venv/bin/python guard.py"
+  GUARD_WORK="/opt/lailaba-guard"
+fi
+
+cat > /etc/systemd/system/lailaba-guard.service <<EOF
+[Unit]
+Description=Lailaba Guard Watchdog
+After=lailaba-ai.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lailaba
+WorkingDirectory=$GUARD_WORK
+ExecStart=$GUARD_EXEC
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "lailaba-guard installed"

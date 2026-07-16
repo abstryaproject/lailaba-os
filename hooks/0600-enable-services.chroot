@@ -1,0 +1,17 @@
+#!/bin/sh
+# 0600-enable-services.chroot — enable everything on first boot.
+set -e
+systemctl enable lailaba-firstboot.service
+systemctl enable lailaba-ai.service
+systemctl enable lailaba-agent.service
+systemctl enable lailaba-gateway.service
+systemctl enable lailaba-gateway-watch.service
+systemctl enable lailaba-guard.service
+systemctl enable lailaba-smtp.service
+systemctl enable lailaba-lab.service
+systemctl enable lailaba-ipwatchdog.timer
+# Tunnel is opt-in (needs a token/hostname): leave disabled by default.
+systemctl disable lailaba-tunnel.service 2>/dev/null || true
+# FUBK re-audit was paused on the source device: keep disabled.
+systemctl disable lailaba-fubk-reaudit.timer 2>/dev/null || true
+echo "services enabled"

@@ -1,0 +1,32 @@
+#!/bin/sh
+# 0050-ingest-state.chroot — expand the captured source-device state 1:1.
+# The tarball was placed at /opt/lailaba-state/lailaba-state.tar.zst by
+# includes.chroot. We unpack it into /root (the ISO's default admin home)
+# so paths like /root/.lailaba, /root/lailaba-ai line up with the origin.
+set -e
+
+SRC=/opt/lailaba-state/lailaba-state.tar.zst
+TARGET=/root
+
+if [ ! -f "$SRC" ]; then
+  echo "[!] No captured state tarball — skipping ingest (fresh install)."
+  exit 0
+fi
+
+echo "[*] Ingesting captured Lailaba state into $TARGET ..."
+mkdir -p "$TARGET"
+zstd -d -c "$SRC" | tar -xf - -C "$TARGET"
+rm -f "$SRC"
+
+# Fix ownership of everything we just dropped into /root.
+chown -R root:root "$TARGET/.lailaba" "$TARGET/lailaba-ai" "$TARGET/.local" \
+                   "$TARGET/bin" "$TARGET/lailaba-lab" "$TARGET/tools" \
+                   "$TARGET/sec-lab" 2>/dev/null || true
+
+# Make service scripts executable.
+chmod +x "$TARGET/.local/bin/"*.sh 2>/dev/null || true
+chmod +x "$TARGET/bin/"* 2>/dev/null || true
+
+# Record that we restored from a snapshot (firstboot uses this).
+echo "restored-from-snapshot" > /var/lib/lailaba/restore.flag
+echo "state ingested"

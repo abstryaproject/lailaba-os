@@ -1,0 +1,8 @@
+#!/bin/sh
+# 0000-prep-env.chroot — base directories + unprivileged service user.
+set -e
+mkdir -p /opt/lailaba-ai /opt/lailaba-agent /opt/lailaba-gateway \
+         /opt/cloudflared /opt/lailaba-guard /var/lib/lailaba /var/log/lailaba
+id -u lailaba >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin -d /var/lib/lailaba lailaba
+chown -R lailaba:lailaba /var/lib/lailaba /var/log/lailaba
+echo "prep-env done"
