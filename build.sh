@@ -21,7 +21,7 @@ echo "[*] Installing live-build + tools..."
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update -y
   sudo apt-get install -y --no-install-recommends \
-    live-build debootstrap xorriso squashfs-tools \
+    live-build debootstrap xorriso squashfs-tools cpio \
     isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin \
     mtools dosfstools curl git ca-certificates
 else

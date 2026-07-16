@@ -28,7 +28,7 @@ jobs:
         run: |
           apt-get update -y
           apt-get install -y --no-install-recommends \
-            live-build debootstrap xorriso squashfs-tools \
+            live-build debootstrap xorriso squashfs-tools cpio \
             isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin \
             mtools dosfstools curl git ca-certificates sudo
 
