@@ -56,7 +56,7 @@ sudo curl wget git ca-certificates gnupg
 python3 python3-venv python3-pip python3-dev build-essential
 net-tools iproute2 ufw
 # Desktop (lightweight, optional but nice for laptop/VM)
-task-xfce-desktop xfce4 terminal
+task-xfce-desktop xfce4-terminal
 # Services support
 nginx
 EOF
