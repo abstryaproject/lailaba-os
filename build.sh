@@ -43,9 +43,7 @@ lb config \
   --iso-publisher "abstryaproject" \
   --iso-volume "LailabaOS" \
   --mirror-bootstrap "http://deb.debian.org/debian" \
-  --mirror-debian-security "http://security.debian.org/debian-security" \
   --mirror-binary "http://deb.debian.org/debian" \
-  --mirror-binary-security "http://security.debian.org/debian-security" \
   --archive-areas "main contrib non-free non-free-firmware"
 
 # 3) Package list (what the ISO ships)
