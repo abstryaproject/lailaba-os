@@ -11,8 +11,6 @@ if [ ! -f pyproject.toml ] && [ ! -f setup.py ] && [ ! -f lailaba_agent ]; then
   else
     echo "[!] agent repo unavailable (using snapshot) — continuing"
   fi
-  cp -a /tmp/la/. /opt/lailaba-agent/
-  rm -rf /tmp/la
 fi
 # NOTE: if a snapshot was ingested to /root, the agent lives at /root/lailaba-agent
 # and this /opt copy is just a fallback. The enable-services hook starts the
