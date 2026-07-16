@@ -27,7 +27,9 @@ jobs:
             mtools dosfstools curl git ca-certificates
 
       - name: Build ISO
-        run: sudo ./build.sh
+        run: |
+          chmod +x build.sh
+          sudo bash ./build.sh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
