@@ -39,7 +39,6 @@ lb config \
   --bootappend-live "boot=live components quiet splash" \
   --bootappend-install "quiet" \
   --binary-images iso-hybrid \
-  --uefi-secure-boot auto \
   --iso-application "Lailaba OS" \
   --iso-publisher "abstryaproject" \
   --iso-volume "LailabaOS" \
