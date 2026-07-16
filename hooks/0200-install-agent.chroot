@@ -5,7 +5,12 @@ cd /opt/lailaba-agent
 
 if [ ! -f pyproject.toml ] && [ ! -f setup.py ] && [ ! -f lailaba_agent ]; then
   echo "[*] No local agent copy — cloning abstryaproject/lailaba-agent"
-  git clone --depth 1 https://github.com/abstryaproject/lailaba-agent.git /tmp/la
+  if git clone --depth 1 https://github.com/abstryaproject/lailaba-agent.git /tmp/la 2>/dev/null; then
+    cp -a /tmp/la/. /opt/lailaba-agent/
+    rm -rf /tmp/la
+  else
+    echo "[!] agent repo unavailable (using snapshot) — continuing"
+  fi
   cp -a /tmp/la/. /opt/lailaba-agent/
   rm -rf /tmp/la
 fi

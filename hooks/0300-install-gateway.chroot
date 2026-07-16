@@ -11,9 +11,12 @@ if [ ! -f gateway.py ] && [ ! -f main.py ]; then
     echo "[*] Using ingested gateway from snapshot ($SNAP)"
   else
     echo "[*] No local gateway copy — cloning abstryaproject/lailaba-gateway"
-    git clone --depth 1 https://github.com/abstryaproject/lailaba-gateway.git /tmp/lg
-    cp -a /tmp/lg/. /opt/lailaba-gateway/
-    rm -rf /tmp/lg
+    if git clone --depth 1 https://github.com/abstryaproject/lailaba-gateway.git /tmp/lg 2>/dev/null; then
+      cp -a /tmp/lg/. /opt/lailaba-gateway/
+      rm -rf /tmp/lg
+    else
+      echo "[!] gateway repo unavailable (using snapshot) — continuing"
+    fi
   fi
 fi
 
